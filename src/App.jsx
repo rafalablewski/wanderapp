@@ -150,98 +150,142 @@ const TripDetailScreen = ({ trip, onBack }) => {
   };
 
   const tripAlerts = [
-    { 
-      id: 1, 
-      type: 'warning', 
-      title: 'Flight Delay Alert', 
-      message: 'JL 5 may experience 30 min delay due to weather', 
-      time: '2h ago',
+    {
+      id: 1,
+      type: 'info',
+      title: 'Visa Reminder',
+      message: 'Indonesia offers visa-free entry for 30 days. Passport valid until Sep 2026',
+      time: '1d ago',
       affectedBookings: [
-        { type: 'transfer', title: 'Narita Express transfer' },
-        { type: 'hotel', title: 'Park Hyatt Tokyo check-in' }
+        { type: 'flight', title: 'SQ 25 departure' }
       ]
     },
-    { id: 2, type: 'info', title: 'Hotel Check-in Reminder', message: 'Park Hyatt Tokyo check-in available from 3:00 PM', time: '5h ago' }
+    { id: 2, type: 'info', title: 'Villa Check-in', message: 'Four Seasons Sayan check-in available from 2:00 PM', time: '3h ago' }
   ];
 
   const timeline = [
     {
       day: 'Day 1',
-      date: 'Sat, Mar 15',
+      date: 'Thu, Mar 20',
       events: [
-        { type: 'flight', time: '11:30', title: 'JFK → NRT', subtitle: 'Japan Airlines JL 5', duration: '13h 55m', status: 'confirmed' },
+        { type: 'flight', time: '22:45', title: 'JFK → SIN → DPS', subtitle: 'Singapore Airlines SQ 25', duration: '22h 45m', status: 'confirmed' },
       ]
     },
     {
       day: 'Day 2',
-      date: 'Sun, Mar 16',
+      date: 'Fri, Mar 21',
       events: [
-        { type: 'flight', time: '15:25', title: 'Arrive Tokyo Narita', subtitle: 'Terminal 1', status: 'confirmed' },
-        { type: 'transfer', time: '16:30', title: 'Airport Transfer', subtitle: 'Narita Express to Shinjuku', duration: '1h 20m', status: 'confirmed' },
-        { type: 'hotel', time: '18:00', title: 'Park Hyatt Tokyo', subtitle: 'Check-in • Deluxe King Room', duration: '8 nights', status: 'confirmed' }
+        { type: 'flight', time: '11:30', title: 'Arrive Ngurah Rai', subtitle: 'Terminal International', status: 'confirmed' },
+        { type: 'transfer', time: '12:30', title: 'Private Car Transfer', subtitle: 'Airport to Ubud', duration: '1h 30m', status: 'confirmed' },
+        { type: 'hotel', time: '14:00', title: 'Four Seasons Sayan', subtitle: 'Check-in • Valley View Suite', duration: '5 nights', status: 'confirmed' }
       ]
     },
     {
       day: 'Day 3',
-      date: 'Mon, Mar 17',
+      date: 'Sat, Mar 22',
       events: [
-        { type: 'experience', time: '09:00', title: 'Tsukiji Outer Market Tour', subtitle: 'Private guide • Sushi breakfast', duration: '3h', status: 'confirmed' },
-        { type: 'experience', time: '14:00', title: 'TeamLab Borderless', subtitle: 'Digital art museum', duration: '2h', status: 'pending' }
+        { type: 'experience', time: '06:00', title: 'Sunrise at Tegallalang', subtitle: 'Rice terrace photography tour', duration: '3h', status: 'confirmed' },
+        { type: 'experience', time: '14:00', title: 'Sacred Monkey Forest', subtitle: 'Guided nature walk', duration: '2h', status: 'confirmed' },
+        { type: 'restaurant', time: '19:00', title: 'Locavore Restaurant', subtitle: 'Farm-to-table tasting menu', duration: '2.5h', status: 'confirmed' }
       ]
     },
     {
       day: 'Day 4',
-      date: 'Tue, Mar 18',
+      date: 'Sun, Mar 23',
       events: [
-        { type: 'car', time: '08:00', title: 'Toyota Alphard Rental', subtitle: 'Pickup: Tokyo Station', duration: '2 days', status: 'confirmed' },
-        { type: 'experience', time: '10:00', title: 'Mt. Fuji Day Trip', subtitle: 'Hakone scenic drive', duration: 'Full day', status: 'confirmed' }
+        { type: 'experience', time: '09:00', title: 'Balinese Cooking Class', subtitle: 'Traditional recipes with local chef', duration: '4h', status: 'confirmed' },
+        { type: 'experience', time: '16:00', title: 'Spa & Wellness Retreat', subtitle: 'Couples massage & healing ritual', duration: '3h', status: 'confirmed' }
       ]
     },
     {
       day: 'Day 5',
-      date: 'Wed, Mar 19',
+      date: 'Mon, Mar 24',
       events: [
-        { type: 'car', time: '18:00', title: 'Return Rental Car', subtitle: 'Dropoff: Tokyo Station', status: 'confirmed' },
-        { type: 'restaurant', time: '19:30', title: 'Sukiyabashi Jiro', subtitle: 'Omakase dinner reservation', duration: '2h', status: 'confirmed' }
+        { type: 'car', time: '07:00', title: 'Private Driver', subtitle: 'Full day exploration', duration: 'Full day', status: 'confirmed' },
+        { type: 'experience', time: '08:00', title: 'Tirta Empul Temple', subtitle: 'Holy water purification ceremony', duration: '2h', status: 'confirmed' },
+        { type: 'experience', time: '12:00', title: 'Mount Batur Lunch', subtitle: 'Volcanic hot springs & buffet', duration: '3h', status: 'confirmed' }
       ]
     },
     {
       day: 'Day 6',
-      date: 'Thu, Mar 20',
+      date: 'Tue, Mar 25',
       events: [
-        { type: 'train', time: '09:00', title: 'Shinkansen to Kyoto', subtitle: 'Nozomi 225 • Reserved seats', duration: '2h 15m', status: 'confirmed' },
-        { type: 'experience', time: '14:00', title: 'Fushimi Inari Shrine', subtitle: 'Guided tour', duration: '2h', status: 'confirmed' }
+        { type: 'transfer', time: '10:00', title: 'Transfer to Seminyak', subtitle: 'Private car Ubud to beach', duration: '1h 15m', status: 'confirmed' },
+        { type: 'hotel', time: '14:00', title: 'W Bali Seminyak', subtitle: 'Check-in • Ocean Facing Retreat', duration: '5 nights', status: 'confirmed' },
+        { type: 'restaurant', time: '18:00', title: 'Ku De Ta', subtitle: 'Sunset dinner & cocktails', duration: '3h', status: 'confirmed' }
+      ]
+    },
+    {
+      day: 'Day 7',
+      date: 'Wed, Mar 26',
+      events: [
+        { type: 'experience', time: '07:00', title: 'Surf Lesson', subtitle: 'Beginner session at Echo Beach', duration: '2h', status: 'confirmed' },
+        { type: 'experience', time: '15:00', title: 'Beach Club Day', subtitle: 'Potato Head • Reserved daybed', duration: '5h', status: 'pending' }
+      ]
+    },
+    {
+      day: 'Day 8',
+      date: 'Thu, Mar 27',
+      events: [
+        { type: 'experience', time: '05:00', title: 'Nusa Penida Day Trip', subtitle: 'Speed boat • Kelingking Beach', duration: 'Full day', status: 'confirmed' }
+      ]
+    },
+    {
+      day: 'Day 9',
+      date: 'Fri, Mar 28',
+      events: [
+        { type: 'experience', time: '10:00', title: 'Tanah Lot Temple', subtitle: 'Sunset temple visit', duration: '3h', status: 'confirmed' },
+        { type: 'restaurant', time: '19:30', title: 'Merah Putih', subtitle: 'Indonesian fine dining', duration: '2h', status: 'confirmed' }
+      ]
+    },
+    {
+      day: 'Day 10',
+      date: 'Sat, Mar 29',
+      events: [
+        { type: 'experience', time: '09:00', title: 'Spa Day', subtitle: 'Full day wellness package', duration: '6h', status: 'confirmed' },
+        { type: 'restaurant', time: '20:00', title: 'Sardine Restaurant', subtitle: 'Seafood in rice paddies', duration: '2h', status: 'confirmed' }
+      ]
+    },
+    {
+      day: 'Day 11',
+      date: 'Sun, Mar 30',
+      events: [
+        { type: 'hotel', time: '11:00', title: 'W Bali Checkout', subtitle: 'Late checkout arranged', status: 'confirmed' },
+        { type: 'transfer', time: '14:00', title: 'Airport Transfer', subtitle: 'Private car to DPS', duration: '45m', status: 'confirmed' },
+        { type: 'flight', time: '17:30', title: 'DPS → SIN → JFK', subtitle: 'Singapore Airlines SQ 948', duration: '24h 15m', status: 'confirmed' }
       ]
     }
   ];
 
   const budgetData = {
-    total: 8500,
-    spent: 5240,
+    total: 12500,
+    spent: 9850,
     categories: [
-      { name: 'Flights', amount: 2400, color: '#d4af37' },
-      { name: 'Hotels', amount: 1800, color: '#6366f1' },
-      { name: 'Experiences', amount: 640, color: '#22c55e' },
-      { name: 'Transport', amount: 280, color: '#f97316' },
-      { name: 'Dining', amount: 120, color: '#ec4899' }
+      { name: 'Flights', amount: 3200, color: '#d4af37' },
+      { name: 'Hotels', amount: 4100, color: '#6366f1' },
+      { name: 'Experiences', amount: 1450, color: '#22c55e' },
+      { name: 'Transport', amount: 580, color: '#f97316' },
+      { name: 'Dining', amount: 520, color: '#ec4899' }
     ]
   };
 
   const weatherData = [
-    { day: 'Sat', date: '15', high: 18, low: 10, condition: 'sunny', precip: 5 },
-    { day: 'Sun', date: '16', high: 17, low: 9, condition: 'cloudy', precip: 20 },
-    { day: 'Mon', date: '17', high: 19, low: 11, condition: 'sunny', precip: 0 },
-    { day: 'Tue', date: '18', high: 16, low: 8, condition: 'rainy', precip: 80 },
-    { day: 'Wed', date: '19', high: 15, low: 7, condition: 'cloudy', precip: 30 },
-    { day: 'Thu', date: '20', high: 20, low: 12, condition: 'sunny', precip: 5 }
+    { day: 'Thu', date: '20', high: 32, low: 25, condition: 'sunny', precip: 10 },
+    { day: 'Fri', date: '21', high: 31, low: 24, condition: 'cloudy', precip: 30 },
+    { day: 'Sat', date: '22', high: 33, low: 26, condition: 'sunny', precip: 5 },
+    { day: 'Sun', date: '23', high: 30, low: 24, condition: 'rainy', precip: 65 },
+    { day: 'Mon', date: '24', high: 31, low: 25, condition: 'cloudy', precip: 40 },
+    { day: 'Tue', date: '25', high: 32, low: 25, condition: 'sunny', precip: 15 }
   ];
 
   const documents = [
-    { id: 1, name: 'Japan Tourist Visa', type: 'visa', status: 'valid', expiry: 'Dec 2025' },
-    { id: 2, name: 'Travel Insurance', type: 'insurance', status: 'active', provider: 'World Nomads' },
-    { id: 3, name: 'JR Pass Voucher', type: 'ticket', status: 'ready', validity: '7 days' },
-    { id: 4, name: 'Hotel Confirmation', type: 'confirmation', status: 'confirmed', ref: 'PHT-2847291' },
-    { id: 5, name: 'Flight E-Tickets', type: 'ticket', status: 'confirmed', ref: 'JL-8472910' }
+    { id: 1, name: 'Passport', type: 'visa', status: 'valid', expiry: 'Sep 2026' },
+    { id: 2, name: 'Travel Insurance', type: 'insurance', status: 'active', provider: 'Allianz Global' },
+    { id: 3, name: 'Four Seasons Confirmation', type: 'confirmation', status: 'confirmed', ref: 'FS-9284710' },
+    { id: 4, name: 'W Bali Confirmation', type: 'confirmation', status: 'confirmed', ref: 'WB-3847201' },
+    { id: 5, name: 'Flight E-Tickets', type: 'ticket', status: 'confirmed', ref: 'SQ-7482910' },
+    { id: 6, name: 'Nusa Penida Boat Tickets', type: 'ticket', status: 'confirmed', ref: 'NP-284710' },
+    { id: 7, name: 'Locavore Reservation', type: 'confirmation', status: 'confirmed', ref: 'LOC-8471' }
   ];
 
   return (
@@ -1109,33 +1153,41 @@ const UpdatesFeed = () => {
     {
       id: 1,
       type: 'flight',
-      title: 'Gate Changed',
-      message: 'JL 5 gate changed from B38 to B42',
-      time: '30 min ago',
+      title: 'Check-in Available',
+      message: 'Online check-in for SQ 25 is now open',
+      time: '1h ago',
       icon: <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
     },
     {
       id: 2,
       type: 'weather',
-      title: 'Weather Advisory',
-      message: 'Rain expected in Tokyo on Mar 18. Pack accordingly!',
-      time: '2h ago',
+      title: 'Weather Update',
+      message: 'Afternoon showers expected in Ubud on Mar 23. Perfect spa day!',
+      time: '3h ago',
       icon: <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
     },
     {
       id: 3,
       type: 'price',
-      title: 'Price Drop Alert',
-      message: 'Your saved hotel in Kyoto dropped $45/night',
-      time: '5h ago',
+      title: 'Experience Discount',
+      message: 'Nusa Penida day trip reduced by $25 per person',
+      time: '6h ago',
       icon: <><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></>
     },
     {
       id: 4,
       type: 'reminder',
-      title: 'Check-in Open',
-      message: 'Online check-in is now available for JL 5',
+      title: 'Reservation Confirmed',
+      message: 'Locavore dinner reservation confirmed for Mar 22 at 7 PM',
       time: '1d ago',
+      icon: <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>
+    },
+    {
+      id: 5,
+      type: 'reminder',
+      title: 'Packing Reminder',
+      message: 'Don\'t forget: reef-safe sunscreen required for Bali beaches',
+      time: '2d ago',
       icon: <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>
     }
   ];
@@ -1837,53 +1889,53 @@ const HomeScreen = ({ onSelectTrip }) => {
   const trips = [
     {
       id: 1,
-      destination: 'Tokyo',
-      country: 'Japan',
-      dates: 'Mar 15 - 24',
-      image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&q=80',
-      localTime: '11:42 PM',
-      bookings: { flights: 2, hotels: 1, experiences: 3 },
+      destination: 'Bali',
+      country: 'Indonesia',
+      dates: 'Mar 20 - 31',
+      image: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800&q=80',
+      localTime: '10:42 PM',
+      bookings: { flights: 2, hotels: 2, experiences: 5 },
       upcoming: true
     },
     {
       id: 2,
-      destination: 'Barcelona',
-      country: 'Spain',
-      dates: 'Apr 8 - 15',
-      image: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800&q=80',
-      localTime: '4:42 PM',
-      bookings: { flights: 2, hotels: 2, experiences: 1 },
+      destination: 'Paris',
+      country: 'France',
+      dates: 'Apr 15 - 22',
+      image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80',
+      localTime: '5:42 PM',
+      bookings: { flights: 2, hotels: 1, experiences: 4 },
       upcoming: true
     },
     {
       id: 3,
-      destination: 'Reykjavik',
-      country: 'Iceland',
-      dates: 'Jan 2 - 9',
-      image: 'https://images.unsplash.com/photo-1504893524553-b855bce32c67?w=800&q=80',
-      localTime: '2:42 PM',
-      bookings: { flights: 2, hotels: 1, experiences: 4 },
+      destination: 'Queenstown',
+      country: 'New Zealand',
+      dates: 'Jan 5 - 14',
+      image: 'https://images.unsplash.com/photo-1507699622108-4be3abd695ad?w=800&q=80',
+      localTime: '6:42 AM',
+      bookings: { flights: 2, hotels: 2, experiences: 6 },
       upcoming: false
     }
   ];
 
   const nextFlight = {
-    airline: 'Japan Airlines',
-    flightNo: 'JL 5',
+    airline: 'Singapore Airlines',
+    flightNo: 'SQ 25',
     departure: 'JFK',
-    arrival: 'NRT',
-    departureTime: '11:30',
-    arrivalTime: '15:25',
+    arrival: 'DPS',
+    departureTime: '22:45',
+    arrivalTime: '11:30',
     arrivalNextDay: true,
-    date: 'Mar 15',
-    terminal: '1',
-    gate: 'B42',
+    date: 'Mar 20',
+    terminal: '4',
+    gate: 'A12',
     status: 'On Time'
   };
 
   // Global trip alerts for homepage
   const globalAlerts = [
-    { id: 1, type: 'warning', title: 'Upcoming: Tokyo Trip', message: 'Flight JL 5 may have 30 min delay due to weather conditions', time: '2h ago' }
+    { id: 1, type: 'info', title: 'Upcoming: Bali Trip', message: 'Online check-in for SQ 25 opens in 24 hours', time: '1h ago' }
   ];
 
   return (
