@@ -37,6 +37,7 @@ const App = () => {
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState(null);
+  const [userBookings, setUserBookings] = useState([]);
 
   const navigateTo = (screen, trip = null) => {
     setIsTransitioning(true);
@@ -45,6 +46,16 @@ const App = () => {
       if (trip) setSelectedTrip(trip);
       setIsTransitioning(false);
     }, 300);
+  };
+
+  const addBooking = (booking) => {
+    const newBooking = {
+      ...booking,
+      id: Date.now(),
+      createdAt: new Date().toISOString(),
+    };
+    setUserBookings(prev => [...prev, newBooking]);
+    return newBooking;
   };
 
   const nextOnboarding = () => {
@@ -108,10 +119,29 @@ const App = () => {
           />
         )}
         {currentScreen === 'home' && (
-          <HomeScreen onSelectTrip={(trip) => navigateTo('tripDetail', trip)} />
+          <HomeScreen
+            onSelectTrip={(trip) => navigateTo('tripDetail', trip)}
+            onAddBooking={() => navigateTo('addBooking')}
+            userBookings={userBookings}
+          />
         )}
         {currentScreen === 'tripDetail' && selectedTrip && (
-          <TripDetailScreen trip={selectedTrip} onBack={() => navigateTo('home')} />
+          <TripDetailScreen
+            trip={selectedTrip}
+            onBack={() => navigateTo('home')}
+            onAddBooking={() => navigateTo('addBooking')}
+            userBookings={userBookings}
+          />
+        )}
+        {currentScreen === 'addBooking' && (
+          <AddBookingScreen
+            onBack={() => navigateTo(selectedTrip ? 'tripDetail' : 'home')}
+            onSave={(booking) => {
+              addBooking(booking);
+              navigateTo(selectedTrip ? 'tripDetail' : 'home');
+            }}
+            selectedTrip={selectedTrip}
+          />
         )}
       </div>
     </div>
@@ -119,7 +149,7 @@ const App = () => {
 };
 
 // ==================== TRIP DETAIL SCREEN ====================
-const TripDetailScreen = ({ trip, onBack }) => {
+const TripDetailScreen = ({ trip, onBack, onAddBooking, userBookings = [] }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isLoaded, setIsLoaded] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -371,6 +401,7 @@ const TripDetailScreen = ({ trip, onBack }) => {
               </svg>
             </button>
             <button
+              onClick={onAddBooking}
               style={{
                 background: 'linear-gradient(135deg, #d4af37 0%, #f4d03f 100%)',
                 border: 'none',
@@ -502,6 +533,15 @@ const TripDetailScreen = ({ trip, onBack }) => {
           <div style={{ position: 'relative' }}>
             <DebugLabel name="TAB-OVERVIEW" />
             <TripAlerts alerts={tripAlerts} />
+
+            {/* User Added Bookings */}
+            {userBookings.length > 0 && (
+              <div style={{ marginBottom: '24px' }}>
+                <SectionHeader title="Your Bookings" count={userBookings.length} />
+                <UserBookingsList bookings={userBookings} />
+              </div>
+            )}
+
             <SectionHeader title="Trip Timeline" />
             <TripTimeline timeline={timeline} />
           </div>
@@ -850,6 +890,187 @@ const TripTimeline = ({ timeline }) => {
           </div>
         </div>
       ))}
+    </div>
+  );
+};
+
+// ==================== USER BOOKINGS LIST ====================
+const UserBookingsList = ({ bookings }) => {
+  const getBookingIcon = (type) => {
+    const icons = {
+      flight: <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>,
+      hotel: <><path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16"/><path d="M3 21h18"/><rect x="9" y="12" width="6" height="5"/></>,
+      car: <><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9L18 10l-2.5-4.3A2 2 0 0 0 13.8 5H9.2c-.7 0-1.3.3-1.7.8L5 10l-2.5 1.1C1.7 11.3 1 12.1 1 13v3c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></>,
+      experience: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>,
+      restaurant: <><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></>,
+      transfer: <><circle cx="5" cy="18" r="3"/><circle cx="19" cy="18" r="3"/><path d="M8 18h8"/><path d="M5 15V7a2 2 0 0 1 2-2h3"/><path d="M14 5l2-2 2 2"/><path d="M16 3v6"/></>
+    };
+    return icons[type] || icons.experience;
+  };
+
+  const getBookingColor = (type) => {
+    const colors = {
+      flight: '#d4af37',
+      hotel: '#6366f1',
+      car: '#22c55e',
+      experience: '#ec4899',
+      restaurant: '#ef4444',
+      transfer: '#8b5cf6'
+    };
+    return colors[type] || '#d4af37';
+  };
+
+  const getBookingTitle = (booking) => {
+    switch (booking.type) {
+      case 'flight':
+        return `${booking.airline || 'Flight'} ${booking.flightNumber || ''}`;
+      case 'hotel':
+        return booking.name || 'Hotel';
+      case 'car':
+        return `${booking.company || 'Car Rental'} - ${booking.carType || 'Vehicle'}`;
+      case 'experience':
+        return booking.name || 'Experience';
+      case 'restaurant':
+        return booking.name || 'Restaurant';
+      case 'transfer':
+        return `${booking.company || 'Transfer'}`;
+      default:
+        return 'Booking';
+    }
+  };
+
+  const getBookingSubtitle = (booking) => {
+    switch (booking.type) {
+      case 'flight':
+        return `${booking.departure || ''} → ${booking.arrival || ''} • ${booking.departureDate || ''}`;
+      case 'hotel':
+        return `${booking.location || ''} • ${booking.checkIn || ''} - ${booking.checkOut || ''}`;
+      case 'car':
+        return `${booking.pickupLocation || ''} • ${booking.pickupDate || ''}`;
+      case 'experience':
+        return `${booking.location || ''} • ${booking.date || ''}`;
+      case 'restaurant':
+        return `${booking.location || ''} • ${booking.date || ''} at ${booking.time || ''}`;
+      case 'transfer':
+        return `${booking.pickupLocation || ''} → ${booking.dropoffLocation || ''}`;
+      default:
+        return '';
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {bookings.map(booking => {
+        const color = getBookingColor(booking.type);
+        return (
+          <div
+            key={booking.id}
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '16px',
+              padding: '16px',
+              display: 'flex',
+              gap: '14px',
+              alignItems: 'flex-start'
+            }}
+          >
+            {/* Icon */}
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '12px',
+              background: `${color}20`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill={color} stroke={color} strokeWidth="1">
+                {getBookingIcon(booking.type)}
+              </svg>
+            </div>
+
+            {/* Content */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                <p style={{ fontSize: '15px', fontWeight: '600' }}>
+                  {getBookingTitle(booking)}
+                </p>
+                {booking.price && (
+                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#d4af37' }}>
+                    ${booking.price}
+                  </span>
+                )}
+              </div>
+              <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '8px' }}>
+                {getBookingSubtitle(booking)}
+              </p>
+
+              {/* Status badges */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 10px',
+                  borderRadius: '20px',
+                  background: 'rgba(34, 197, 94, 0.15)',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  color: '#22c55e',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#22c55e' }} />
+                  Confirmed
+                </span>
+
+                {booking.paymentStatus && (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px 10px',
+                    borderRadius: '20px',
+                    background: booking.paymentStatus === 'paid' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(249, 115, 22, 0.15)',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    color: booking.paymentStatus === 'paid' ? '#818cf8' : '#f97316',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    {booking.paymentStatus === 'paid' ? 'Paid' : 'Payment Due'}
+                  </span>
+                )}
+
+                {booking.source === 'screenshot' && (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px 10px',
+                    borderRadius: '20px',
+                    background: 'rgba(212, 175, 55, 0.15)',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    color: '#d4af37',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    AI Parsed
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };
@@ -1878,8 +2099,681 @@ const OnboardingVisual = ({ type }) => {
   return visuals[type] || null;
 };
 
+// ==================== ADD BOOKING SCREEN ====================
+const AddBookingScreen = ({ onBack, onSave, selectedTrip }) => {
+  const [step, setStep] = useState('method'); // 'method' | 'type' | 'form' | 'screenshot' | 'confirm'
+  const [inputMethod, setInputMethod] = useState(null); // 'manual' | 'screenshot'
+  const [bookingType, setBookingType] = useState(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [parsedData, setParsedData] = useState(null);
+  const [formData, setFormData] = useState({});
+
+  useEffect(() => {
+    setTimeout(() => setIsLoaded(true), 100);
+  }, []);
+
+  const bookingTypes = [
+    { id: 'flight', label: 'Flight', icon: <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>, color: '#d4af37' },
+    { id: 'hotel', label: 'Hotel', icon: <><path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16"/><path d="M3 21h18"/><rect x="9" y="12" width="6" height="5"/></>, color: '#6366f1' },
+    { id: 'car', label: 'Car Rental', icon: <><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9L18 10l-2.5-4.3A2 2 0 0 0 13.8 5H9.2c-.7 0-1.3.3-1.7.8L5 10l-2.5 1.1C1.7 11.3 1 12.1 1 13v3c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></>, color: '#22c55e' },
+    { id: 'experience', label: 'Experience', icon: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>, color: '#ec4899' },
+    { id: 'restaurant', label: 'Restaurant', icon: <><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></>, color: '#ef4444' },
+    { id: 'transfer', label: 'Transfer', icon: <><circle cx="5" cy="18" r="3"/><circle cx="19" cy="18" r="3"/><path d="M8 18h8"/><path d="M5 15V7a2 2 0 0 1 2-2h3"/><path d="M14 5l2-2 2 2"/><path d="M16 3v6"/></>, color: '#8b5cf6' }
+  ];
+
+  const inputMethods = [
+    {
+      id: 'manual',
+      title: 'Manual Entry',
+      subtitle: 'Type in your booking details',
+      icon: (
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+      )
+    },
+    {
+      id: 'screenshot',
+      title: 'Upload Screenshot',
+      subtitle: 'We\'ll extract the details for you',
+      icon: (
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+      )
+    }
+  ];
+
+  const handleMethodSelect = (method) => {
+    setInputMethod(method);
+    setStep(method === 'screenshot' ? 'screenshot' : 'type');
+  };
+
+  const handleTypeSelect = (type) => {
+    setBookingType(type);
+    setStep('form');
+  };
+
+  const handleScreenshotUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsProcessing(true);
+
+    // Simulate AI processing with realistic delay
+    await new Promise(resolve => setTimeout(resolve, 2500));
+
+    // Simulate parsed data based on file name hints or random
+    const simulatedData = {
+      flight: {
+        type: 'flight',
+        airline: 'United Airlines',
+        flightNumber: 'UA 847',
+        departure: 'LAX',
+        arrival: 'NRT',
+        departureDate: '2025-04-15',
+        departureTime: '11:30',
+        arrivalDate: '2025-04-16',
+        arrivalTime: '15:45',
+        confirmationNumber: 'ABC123XYZ',
+        price: 1250,
+        currency: 'USD',
+        paymentStatus: 'paid',
+        status: 'confirmed'
+      },
+      hotel: {
+        type: 'hotel',
+        name: 'The Ritz-Carlton',
+        location: 'Tokyo, Japan',
+        checkIn: '2025-04-16',
+        checkOut: '2025-04-20',
+        roomType: 'Deluxe King',
+        confirmationNumber: 'RC789456',
+        price: 2400,
+        currency: 'USD',
+        paymentStatus: 'unpaid',
+        status: 'confirmed'
+      }
+    };
+
+    // Randomly pick flight or hotel for demo
+    const parsed = Math.random() > 0.5 ? simulatedData.flight : simulatedData.hotel;
+    setParsedData(parsed);
+    setBookingType(parsed.type);
+    setFormData(parsed);
+    setIsProcessing(false);
+    setStep('confirm');
+  };
+
+  const handleFormChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = () => {
+    const booking = {
+      ...formData,
+      type: bookingType,
+      source: inputMethod,
+      tripId: selectedTrip?.id
+    };
+    onSave(booking);
+  };
+
+  const renderMethodSelection = () => (
+    <div style={{ padding: '24px' }}>
+      <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px', letterSpacing: '-0.5px' }}>
+        Add a booking
+      </h2>
+      <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.5)', marginBottom: '32px' }}>
+        How would you like to add your booking?
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {inputMethods.map(method => (
+          <button
+            key={method.id}
+            onClick={() => handleMethodSelect(method.id)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              padding: '20px',
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '16px',
+              cursor: 'pointer',
+              textAlign: 'left',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#d4af37'
+            }}>
+              {method.icon}
+            </div>
+            <div>
+              <p style={{ fontSize: '17px', fontWeight: '600', color: '#fff', marginBottom: '4px' }}>
+                {method.title}
+              </p>
+              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>
+                {method.subtitle}
+              </p>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" style={{ marginLeft: 'auto' }}>
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderTypeSelection = () => (
+    <div style={{ padding: '24px' }}>
+      <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px', letterSpacing: '-0.5px' }}>
+        What type of booking?
+      </h2>
+      <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.5)', marginBottom: '32px' }}>
+        Select the type of booking you want to add
+      </p>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+        {bookingTypes.map(type => (
+          <button
+            key={type.id}
+            onClick={() => handleTypeSelect(type.id)}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '24px 16px',
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '16px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <div style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '12px',
+              background: `${type.color}20`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill={type.color} stroke={type.color} strokeWidth="1">
+                {type.icon}
+              </svg>
+            </div>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: '#fff' }}>
+              {type.label}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderScreenshotUpload = () => (
+    <div style={{ padding: '24px' }}>
+      <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px', letterSpacing: '-0.5px' }}>
+        Upload screenshot
+      </h2>
+      <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.5)', marginBottom: '32px' }}>
+        Upload a screenshot of your booking confirmation
+      </p>
+
+      {isProcessing ? (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '60px 24px',
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '20px'
+        }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            border: '3px solid rgba(212, 175, 55, 0.2)',
+            borderTopColor: '#d4af37',
+            animation: 'spin 1s linear infinite',
+            marginBottom: '24px'
+          }} />
+          <p style={{ fontSize: '17px', fontWeight: '600', marginBottom: '8px' }}>
+            Analyzing your screenshot...
+          </p>
+          <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>
+            Extracting booking details with AI
+          </p>
+        </div>
+      ) : (
+        <label style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '60px 24px',
+          background: 'rgba(255,255,255,0.04)',
+          border: '2px dashed rgba(255,255,255,0.15)',
+          borderRadius: '20px',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease'
+        }}>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleScreenshotUpload}
+            style={{ display: 'none' }}
+          />
+          <div style={{
+            width: '72px',
+            height: '72px',
+            borderRadius: '20px',
+            background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '20px'
+          }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#d4af37" strokeWidth="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <p style={{ fontSize: '17px', fontWeight: '600', marginBottom: '8px' }}>
+            Tap to upload
+          </p>
+          <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>
+            PNG, JPG, or screenshot from your camera roll
+          </p>
+        </label>
+      )}
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+
+  const renderForm = () => {
+    const type = bookingTypes.find(t => t.id === bookingType);
+
+    const fields = {
+      flight: [
+        { key: 'airline', label: 'Airline', placeholder: 'e.g. United Airlines' },
+        { key: 'flightNumber', label: 'Flight Number', placeholder: 'e.g. UA 847' },
+        { key: 'departure', label: 'From', placeholder: 'e.g. LAX' },
+        { key: 'arrival', label: 'To', placeholder: 'e.g. NRT' },
+        { key: 'departureDate', label: 'Departure Date', type: 'date' },
+        { key: 'departureTime', label: 'Departure Time', type: 'time' },
+        { key: 'confirmationNumber', label: 'Confirmation #', placeholder: 'e.g. ABC123' },
+        { key: 'price', label: 'Price', type: 'number', placeholder: '0.00' },
+        { key: 'paymentStatus', label: 'Payment Status', type: 'select', options: ['paid', 'unpaid', 'partial'] }
+      ],
+      hotel: [
+        { key: 'name', label: 'Hotel Name', placeholder: 'e.g. The Ritz-Carlton' },
+        { key: 'location', label: 'Location', placeholder: 'e.g. Tokyo, Japan' },
+        { key: 'checkIn', label: 'Check-in Date', type: 'date' },
+        { key: 'checkOut', label: 'Check-out Date', type: 'date' },
+        { key: 'roomType', label: 'Room Type', placeholder: 'e.g. Deluxe King' },
+        { key: 'confirmationNumber', label: 'Confirmation #', placeholder: 'e.g. RC789456' },
+        { key: 'price', label: 'Total Price', type: 'number', placeholder: '0.00' },
+        { key: 'paymentStatus', label: 'Payment Status', type: 'select', options: ['paid', 'unpaid', 'partial'] }
+      ],
+      car: [
+        { key: 'company', label: 'Rental Company', placeholder: 'e.g. Hertz' },
+        { key: 'pickupLocation', label: 'Pick-up Location', placeholder: 'e.g. LAX Airport' },
+        { key: 'dropoffLocation', label: 'Drop-off Location', placeholder: 'e.g. SFO Airport' },
+        { key: 'pickupDate', label: 'Pick-up Date', type: 'date' },
+        { key: 'dropoffDate', label: 'Drop-off Date', type: 'date' },
+        { key: 'carType', label: 'Car Type', placeholder: 'e.g. SUV' },
+        { key: 'confirmationNumber', label: 'Confirmation #', placeholder: 'e.g. HZ123456' },
+        { key: 'price', label: 'Total Price', type: 'number', placeholder: '0.00' },
+        { key: 'paymentStatus', label: 'Payment Status', type: 'select', options: ['paid', 'unpaid', 'partial'] }
+      ],
+      experience: [
+        { key: 'name', label: 'Experience Name', placeholder: 'e.g. Sunrise Temple Tour' },
+        { key: 'provider', label: 'Provider', placeholder: 'e.g. Viator' },
+        { key: 'location', label: 'Location', placeholder: 'e.g. Bali, Indonesia' },
+        { key: 'date', label: 'Date', type: 'date' },
+        { key: 'time', label: 'Time', type: 'time' },
+        { key: 'duration', label: 'Duration', placeholder: 'e.g. 3 hours' },
+        { key: 'confirmationNumber', label: 'Confirmation #', placeholder: 'e.g. VIA789' },
+        { key: 'price', label: 'Price', type: 'number', placeholder: '0.00' },
+        { key: 'paymentStatus', label: 'Payment Status', type: 'select', options: ['paid', 'unpaid', 'partial'] }
+      ],
+      restaurant: [
+        { key: 'name', label: 'Restaurant Name', placeholder: 'e.g. Nobu' },
+        { key: 'location', label: 'Location', placeholder: 'e.g. Tokyo, Japan' },
+        { key: 'date', label: 'Date', type: 'date' },
+        { key: 'time', label: 'Time', type: 'time' },
+        { key: 'partySize', label: 'Party Size', type: 'number', placeholder: '2' },
+        { key: 'confirmationNumber', label: 'Confirmation #', placeholder: 'e.g. NOBU123' }
+      ],
+      transfer: [
+        { key: 'company', label: 'Company', placeholder: 'e.g. Blacklane' },
+        { key: 'pickupLocation', label: 'Pick-up', placeholder: 'e.g. NRT Airport' },
+        { key: 'dropoffLocation', label: 'Drop-off', placeholder: 'e.g. Hotel' },
+        { key: 'date', label: 'Date', type: 'date' },
+        { key: 'time', label: 'Time', type: 'time' },
+        { key: 'confirmationNumber', label: 'Confirmation #', placeholder: 'e.g. BL456' },
+        { key: 'price', label: 'Price', type: 'number', placeholder: '0.00' },
+        { key: 'paymentStatus', label: 'Payment Status', type: 'select', options: ['paid', 'unpaid', 'partial'] }
+      ]
+    };
+
+    const currentFields = fields[bookingType] || [];
+
+    return (
+      <div style={{ padding: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '10px',
+            background: `${type?.color}20`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill={type?.color} stroke={type?.color} strokeWidth="1">
+              {type?.icon}
+            </svg>
+          </div>
+          <div>
+            <h2 style={{ fontSize: '20px', fontWeight: '700', letterSpacing: '-0.3px' }}>
+              {type?.label} Details
+            </h2>
+            <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>
+              {parsedData ? 'Review extracted details' : 'Enter your booking information'}
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {currentFields.map(field => (
+            <div key={field.key}>
+              <label style={{
+                display: 'block',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: 'rgba(255,255,255,0.6)',
+                marginBottom: '8px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                {field.label}
+              </label>
+              {field.type === 'select' ? (
+                <select
+                  value={formData[field.key] || ''}
+                  onChange={(e) => handleFormChange(field.key, e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '12px',
+                    color: '#fff',
+                    fontSize: '16px',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="">Select...</option>
+                  {field.options?.map(opt => (
+                    <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type={field.type || 'text'}
+                  value={formData[field.key] || ''}
+                  onChange={(e) => handleFormChange(field.key, e.target.value)}
+                  placeholder={field.placeholder}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '12px',
+                    color: '#fff',
+                    fontSize: '16px',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={handleSave}
+          style={{
+            width: '100%',
+            padding: '18px',
+            marginTop: '32px',
+            background: 'linear-gradient(135deg, #d4af37 0%, #f4d03f 100%)',
+            border: 'none',
+            borderRadius: '14px',
+            color: '#0a0a0f',
+            fontSize: '17px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 8px 24px rgba(212, 175, 55, 0.3)'
+          }}
+        >
+          Save Booking
+        </button>
+      </div>
+    );
+  };
+
+  const renderConfirmation = () => {
+    const type = bookingTypes.find(t => t.id === bookingType);
+
+    return (
+      <div style={{ padding: '24px' }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: '32px 24px',
+          background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%)',
+          border: '1px solid rgba(34, 197, 94, 0.2)',
+          borderRadius: '20px',
+          marginBottom: '24px'
+        }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            background: 'rgba(34, 197, 94, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '16px'
+          }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px' }}>
+            Details Extracted!
+          </h3>
+          <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', textAlign: 'center' }}>
+            We found a {type?.label.toLowerCase()} booking. Please review the details below.
+          </p>
+        </div>
+
+        <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px' }}>
+          Extracted Information
+        </h4>
+
+        <div style={{
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '16px',
+          padding: '16px',
+          marginBottom: '24px'
+        }}>
+          {Object.entries(formData).filter(([key]) => key !== 'type').map(([key, value]) => (
+            <div key={key} style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              padding: '12px 0',
+              borderBottom: '1px solid rgba(255,255,255,0.06)'
+            }}>
+              <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', textTransform: 'capitalize' }}>
+                {key.replace(/([A-Z])/g, ' $1').trim()}
+              </span>
+              <span style={{ fontSize: '14px', fontWeight: '500' }}>
+                {typeof value === 'number' ? `$${value}` : value}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button
+            onClick={() => setStep('form')}
+            style={{
+              flex: 1,
+              padding: '16px',
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '14px',
+              color: '#fff',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Edit Details
+          </button>
+          <button
+            onClick={handleSave}
+            style={{
+              flex: 1,
+              padding: '16px',
+              background: 'linear-gradient(135deg, #d4af37 0%, #f4d03f 100%)',
+              border: 'none',
+              borderRadius: '14px',
+              color: '#0a0a0f',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Confirm & Save
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <DebugLabel name="ADD-BOOKING-SCREEN" />
+
+      {/* Header */}
+      <div style={{
+        padding: '56px 24px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        opacity: isLoaded ? 1 : 0,
+        transform: isLoaded ? 'translateY(0)' : 'translateY(-10px)',
+        transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+      }}>
+        <button
+          onClick={() => {
+            if (step === 'method') {
+              onBack();
+            } else if (step === 'type') {
+              setStep('method');
+            } else if (step === 'form') {
+              setStep(inputMethod === 'screenshot' ? 'confirm' : 'type');
+            } else if (step === 'screenshot') {
+              setStep('method');
+            } else if (step === 'confirm') {
+              setStep('screenshot');
+            }
+          }}
+          style={{
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '12px',
+            width: '40px',
+            height: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: '#fff'
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+
+        {/* Progress dots */}
+        <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>
+          {['method', 'type', 'form'].map((s, i) => (
+            <div
+              key={s}
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: ['method', 'screenshot'].includes(step) && i === 0 ? '#d4af37' :
+                           step === 'type' && i <= 1 ? '#d4af37' :
+                           ['form', 'confirm'].includes(step) ? '#d4af37' :
+                           'rgba(255,255,255,0.2)',
+                transition: 'all 0.3s ease'
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{
+        flex: 1,
+        opacity: isLoaded ? 1 : 0,
+        transform: isLoaded ? 'translateY(0)' : 'translateY(20px)',
+        transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.1s'
+      }}>
+        {step === 'method' && renderMethodSelection()}
+        {step === 'type' && renderTypeSelection()}
+        {step === 'form' && renderForm()}
+        {step === 'screenshot' && renderScreenshotUpload()}
+        {step === 'confirm' && renderConfirmation()}
+      </div>
+    </div>
+  );
+};
+
 // ==================== HOME SCREEN ====================
-const HomeScreen = ({ onSelectTrip }) => {
+const HomeScreen = ({ onSelectTrip, onAddBooking, userBookings = [] }) => {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -1980,7 +2874,7 @@ const HomeScreen = ({ onSelectTrip }) => {
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
             <IconButton icon="search" />
-            <IconButton icon="add" primary />
+            <IconButton icon="add" primary onClick={onAddBooking} />
           </div>
         </div>
       </div>
@@ -2073,7 +2967,7 @@ const HomeScreen = ({ onSelectTrip }) => {
   );
 };
 
-const IconButton = ({ icon, primary }) => {
+const IconButton = ({ icon, primary, onClick }) => {
   const icons = {
     search: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -2090,11 +2984,11 @@ const IconButton = ({ icon, primary }) => {
   };
 
   return (
-    <button style={{
+    <button onClick={onClick} style={{
       width: '44px',
       height: '44px',
       borderRadius: '14px',
-      background: primary 
+      background: primary
         ? 'linear-gradient(135deg, #d4af37 0%, #f4d03f 100%)'
         : 'rgba(255,255,255,0.08)',
       border: primary ? 'none' : '1px solid rgba(255,255,255,0.1)',
