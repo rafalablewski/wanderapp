@@ -2101,8 +2101,8 @@ const OnboardingVisual = ({ type }) => {
 
 // ==================== ADD BOOKING SCREEN ====================
 const AddBookingScreen = ({ onBack, onSave, selectedTrip }) => {
-  const [step, setStep] = useState('method'); // 'method' | 'type' | 'form' | 'screenshot' | 'confirm'
-  const [inputMethod, setInputMethod] = useState(null); // 'manual' | 'screenshot'
+  const [step, setStep] = useState('method'); // 'method' | 'type' | 'form' | 'screenshot' | 'email' | 'confirm'
+  const [inputMethod, setInputMethod] = useState(null); // 'manual' | 'screenshot' | 'email'
   const [bookingType, setBookingType] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -2145,12 +2145,29 @@ const AddBookingScreen = ({ onBack, onSave, selectedTrip }) => {
           <polyline points="21 15 16 10 5 21"/>
         </svg>
       )
+    },
+    {
+      id: 'email',
+      title: 'Email Forwarding',
+      subtitle: 'Forward confirmation emails to import',
+      icon: (
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="2" y="4" width="20" height="16" rx="2"/>
+          <polyline points="22 6 12 13 2 6"/>
+        </svg>
+      )
     }
   ];
 
   const handleMethodSelect = (method) => {
     setInputMethod(method);
-    setStep(method === 'screenshot' ? 'screenshot' : 'type');
+    if (method === 'screenshot') {
+      setStep('screenshot');
+    } else if (method === 'email') {
+      setStep('email');
+    } else {
+      setStep('type');
+    }
   };
 
   const handleTypeSelect = (type) => {
@@ -2689,6 +2706,48 @@ const AddBookingScreen = ({ onBack, onSave, selectedTrip }) => {
     );
   };
 
+  const renderEmailForwarding = () => (
+    <div style={{ padding: '24px' }}>
+      <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px', letterSpacing: '-0.5px' }}>
+        Email Forwarding
+      </h2>
+      <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.5)', marginBottom: '32px' }}>
+        Forward your confirmation emails to automatically import bookings
+      </p>
+
+      <div style={{
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: '16px',
+        padding: '32px 24px',
+        textAlign: 'center'
+      }}>
+        <div style={{
+          width: '64px',
+          height: '64px',
+          borderRadius: '16px',
+          background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 24px',
+          color: '#d4af37'
+        }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <rect x="2" y="4" width="20" height="16" rx="2"/>
+            <polyline points="22 6 12 13 2 6"/>
+          </svg>
+        </div>
+        <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
+          Coming Soon
+        </h3>
+        <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', lineHeight: '1.6' }}>
+          This feature is under development. Soon you'll be able to forward confirmation emails to automatically import your bookings.
+        </p>
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       <DebugLabel name="ADD-BOOKING-SCREEN" />
@@ -2712,6 +2771,8 @@ const AddBookingScreen = ({ onBack, onSave, selectedTrip }) => {
             } else if (step === 'form') {
               setStep(inputMethod === 'screenshot' ? 'confirm' : 'type');
             } else if (step === 'screenshot') {
+              setStep('method');
+            } else if (step === 'email') {
               setStep('method');
             } else if (step === 'confirm') {
               setStep('screenshot');
@@ -2766,6 +2827,7 @@ const AddBookingScreen = ({ onBack, onSave, selectedTrip }) => {
         {step === 'type' && renderTypeSelection()}
         {step === 'form' && renderForm()}
         {step === 'screenshot' && renderScreenshotUpload()}
+        {step === 'email' && renderEmailForwarding()}
         {step === 'confirm' && renderConfirmation()}
       </div>
     </div>
