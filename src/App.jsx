@@ -38,6 +38,7 @@ const App = () => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [userBookings, setUserBookings] = useState([]);
+  const [selectedBooking, setSelectedBooking] = useState(null);
 
   const navigateTo = (screen, trip = null) => {
     setIsTransitioning(true);
@@ -131,6 +132,7 @@ const App = () => {
             onBack={() => navigateTo('home')}
             onAddBooking={() => navigateTo('addBooking')}
             userBookings={userBookings}
+            onSelectBooking={setSelectedBooking}
           />
         )}
         {currentScreen === 'addBooking' && (
@@ -144,16 +146,23 @@ const App = () => {
           />
         )}
       </div>
+
+      {/* Booking Detail Modal - Rendered at App level for proper fixed positioning */}
+      {selectedBooking && (
+        <BookingDetailModal
+          booking={selectedBooking}
+          onClose={() => setSelectedBooking(null)}
+        />
+      )}
     </div>
   );
 };
 
 // ==================== TRIP DETAIL SCREEN ====================
-const TripDetailScreen = ({ trip, onBack, onAddBooking, userBookings = [] }) => {
+const TripDetailScreen = ({ trip, onBack, onAddBooking, userBookings = [], onSelectBooking }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isLoaded, setIsLoaded] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [selectedBooking, setSelectedBooking] = useState(null);
 
   useEffect(() => {
     setTimeout(() => setIsLoaded(true), 100);
@@ -539,12 +548,12 @@ const TripDetailScreen = ({ trip, onBack, onAddBooking, userBookings = [] }) => 
             {userBookings.length > 0 && (
               <div style={{ marginBottom: '24px' }}>
                 <SectionHeader title="Your Bookings" count={userBookings.length} />
-                <UserBookingsList bookings={userBookings} onSelectBooking={setSelectedBooking} />
+                <UserBookingsList bookings={userBookings} onSelectBooking={onSelectBooking} />
               </div>
             )}
 
             <SectionHeader title="Trip Timeline" />
-            <TripTimeline timeline={timeline} onSelectEvent={setSelectedBooking} />
+            <TripTimeline timeline={timeline} onSelectEvent={onSelectBooking} />
           </div>
         )}
 
@@ -581,14 +590,6 @@ const TripDetailScreen = ({ trip, onBack, onAddBooking, userBookings = [] }) => 
           </div>
         )}
       </div>
-
-      {/* Booking Detail Modal */}
-      {selectedBooking && (
-        <BookingDetailModal
-          booking={selectedBooking}
-          onClose={() => setSelectedBooking(null)}
-        />
-      )}
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
