@@ -39,6 +39,8 @@ const App = () => {
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [userBookings, setUserBookings] = useState([]);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [savedDestinations, setSavedDestinations] = useState([]);
+  const [selectedDestination, setSelectedDestination] = useState(null);
 
   const navigateTo = (screen, trip = null) => {
     setIsTransitioning(true);
@@ -57,6 +59,21 @@ const App = () => {
     };
     setUserBookings(prev => [...prev, newBooking]);
     return newBooking;
+  };
+
+  const toggleSaveDestination = (destination) => {
+    setSavedDestinations(prev => {
+      const exists = prev.find(d => d.id === destination.id);
+      if (exists) {
+        return prev.filter(d => d.id !== destination.id);
+      } else {
+        return [...prev, { ...destination, savedAt: new Date().toISOString() }];
+      }
+    });
+  };
+
+  const isDestinationSaved = (destinationId) => {
+    return savedDestinations.some(d => d.id === destinationId);
   };
 
   const nextOnboarding = () => {
@@ -124,6 +141,16 @@ const App = () => {
             onSelectTrip={(trip) => navigateTo('tripDetail', trip)}
             onAddBooking={() => navigateTo('addBooking')}
             userBookings={userBookings}
+            onNavigate={navigateTo}
+          />
+        )}
+        {currentScreen === 'explore' && (
+          <ExploreScreen
+            onNavigate={navigateTo}
+            savedDestinations={savedDestinations}
+            onToggleSave={toggleSaveDestination}
+            isDestinationSaved={isDestinationSaved}
+            onSelectDestination={setSelectedDestination}
           />
         )}
         {currentScreen === 'tripDetail' && selectedTrip && (
@@ -152,6 +179,16 @@ const App = () => {
         <BookingDetailModal
           booking={selectedBooking}
           onClose={() => setSelectedBooking(null)}
+        />
+      )}
+
+      {/* Destination Detail Modal - Rendered at App level for proper fixed positioning */}
+      {selectedDestination && (
+        <DestinationDetailModal
+          destination={selectedDestination}
+          onClose={() => setSelectedDestination(null)}
+          onToggleSave={toggleSaveDestination}
+          isSaved={isDestinationSaved(selectedDestination.id)}
         />
       )}
     </div>
@@ -3364,7 +3401,7 @@ const AddBookingScreen = ({ onBack, onSave, selectedTrip }) => {
 };
 
 // ==================== HOME SCREEN ====================
-const HomeScreen = ({ onSelectTrip, onAddBooking, userBookings = [] }) => {
+const HomeScreen = ({ onSelectTrip, onAddBooking, userBookings = [], onNavigate }) => {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -3553,7 +3590,7 @@ const HomeScreen = ({ onSelectTrip, onAddBooking, userBookings = [] }) => {
       </div>
 
       {/* Bottom Nav */}
-      <BottomNav />
+      <BottomNav activeTab="home" onNavigate={onNavigate} />
     </div>
   );
 };
@@ -3938,15 +3975,20 @@ const TripCard = ({ trip, past }) => (
   </div>
 );
 
-const BottomNav = () => {
-  const [activeTab, setActiveTab] = useState('home');
-
+const BottomNav = ({ activeTab = 'home', onNavigate }) => {
   const tabs = [
-    { id: 'home', label: 'Home', icon: <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>, iconActive: <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="currentColor"/></> },
-    { id: 'trips', label: 'Trips', icon: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></> },
-    { id: 'wrapped', label: 'Wrapped', icon: <><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></> },
-    { id: 'profile', label: 'Profile', icon: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></> }
+    { id: 'home', label: 'Home', screen: 'home', icon: <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>, iconActive: <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="currentColor"/></> },
+    { id: 'explore', label: 'Explore', screen: 'explore', icon: <><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></>, iconActive: <><circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.2"/><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></> },
+    { id: 'trips', label: 'Trips', screen: 'home', icon: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></> },
+    { id: 'wrapped', label: 'Wrapped', screen: 'home', icon: <><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></> },
+    { id: 'profile', label: 'Profile', screen: 'home', icon: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></> }
   ];
+
+  const handleTabClick = (tab) => {
+    if (onNavigate && tab.screen) {
+      onNavigate(tab.screen);
+    }
+  };
 
   return (
     <div style={{
@@ -3955,7 +3997,8 @@ const BottomNav = () => {
       left: 0,
       right: 0,
       padding: '12px 24px 28px',
-      background: 'linear-gradient(to top, rgba(10, 10, 15, 0.98) 0%, rgba(10, 10, 15, 0.9) 50%, transparent 100%)'
+      background: 'linear-gradient(to top, rgba(10, 10, 15, 0.98) 0%, rgba(10, 10, 15, 0.9) 50%, transparent 100%)',
+      zIndex: 100
     }}>
       <DebugLabel name="BOTTOM-NAV" />
       <div style={{
@@ -3972,14 +4015,14 @@ const BottomNav = () => {
         {tabs.map(tab => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => handleTabClick(tab)}
             style={{
               flex: 1,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               gap: '4px',
-              padding: '12px 0',
+              padding: '10px 0',
               background: activeTab === tab.id ? 'rgba(212, 175, 55, 0.15)' : 'transparent',
               border: 'none',
               borderRadius: '14px',
@@ -3988,10 +4031,10 @@ const BottomNav = () => {
             }}
           >
             <svg
-              width="22"
-              height="22"
+              width="20"
+              height="20"
               viewBox="0 0 24 24"
-              fill={activeTab === tab.id && tab.id === 'wrapped' ? '#d4af37' : 'none'}
+              fill={activeTab === tab.id && (tab.id === 'wrapped' || tab.id === 'explore') ? '#d4af37' : 'none'}
               stroke={activeTab === tab.id ? '#d4af37' : 'rgba(255,255,255,0.5)'}
               strokeWidth="2"
               strokeLinecap="round"
@@ -4000,12 +4043,531 @@ const BottomNav = () => {
               {activeTab === tab.id && tab.iconActive ? tab.iconActive : tab.icon}
             </svg>
             <span style={{
-              fontSize: '11px',
+              fontSize: '10px',
               fontWeight: '500',
               color: activeTab === tab.id ? '#d4af37' : 'rgba(255,255,255,0.5)'
             }}>{tab.label}</span>
           </button>
         ))}
+      </div>
+    </div>
+  );
+};
+
+// ==================== EXPLORE SCREEN ====================
+const ExploreScreen = ({ onNavigate, savedDestinations = [], onToggleSave, isDestinationSaved, onSelectDestination }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('foryou');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+
+  useEffect(() => {
+    setTimeout(() => setIsLoaded(true), 100);
+  }, []);
+
+  const filters = [
+    { id: 'foryou', label: 'For You', icon: <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/> },
+    { id: 'deals', label: 'Deals', icon: <><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></> },
+    { id: 'trending', label: 'Trending', icon: <><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></> },
+    { id: 'saved', label: 'Saved', icon: <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/> }
+  ];
+
+  const heroDestinations = [
+    {
+      id: 'hero-1',
+      destination: 'Japan',
+      tagline: 'Cherry Blossom Season',
+      description: 'Experience the magic of sakura in full bloom across ancient temples and modern cities',
+      image: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1200&q=80',
+      price: 899,
+      duration: '7 days',
+      season: 'Spring Special',
+      rating: 4.9,
+      reviews: 2847
+    }
+  ];
+
+  const flashDeals = [
+    { id: 'deal-1', type: 'flight', route: 'NYC → Paris', airline: 'Air France', originalPrice: 499, dealPrice: 299, discount: 40, endsIn: 7200, image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&q=80' },
+    { id: 'deal-2', type: 'hotel', name: 'Four Seasons Bali', location: 'Ubud, Indonesia', originalPrice: 450, dealPrice: 289, discount: 36, perNight: true, endsIn: 14400, image: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400&q=80' },
+    { id: 'deal-3', type: 'package', name: 'Maldives Escape', includes: 'Flight + 5 nights', originalPrice: 3200, dealPrice: 2199, discount: 31, endsIn: 28800, image: 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=400&q=80' }
+  ];
+
+  const becauseYouLoved = {
+    basedOn: 'Bali',
+    destinations: [
+      { id: 'rec-1', destination: 'Fiji', country: 'South Pacific', tagline: 'Island Paradise', image: 'https://images.unsplash.com/photo-1589179899221-9f5c5ed2c1d0?w=400&q=80', price: 1899, match: 94 },
+      { id: 'rec-2', destination: 'Phuket', country: 'Thailand', tagline: 'Beach & Culture', image: 'https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=400&q=80', price: 799, match: 91 },
+      { id: 'rec-3', destination: 'Sri Lanka', country: 'South Asia', tagline: 'Hidden Gem', image: 'https://images.unsplash.com/photo-1586613835341-28f093579ab4?w=400&q=80', price: 1099, match: 88 },
+      { id: 'rec-4', destination: 'Vietnam', country: 'Southeast Asia', tagline: 'Adventure Awaits', image: 'https://images.unsplash.com/photo-1528127269322-539801943592?w=400&q=80', price: 699, match: 85 }
+    ]
+  };
+
+  const culturalSpotlights = [
+    { id: 'culture-1', title: 'A Week in Morocco', subtitle: 'From Marrakech to the Sahara', readTime: '8 min read', image: 'https://images.unsplash.com/photo-1489749798305-4fea3ae63d43?w=600&q=80', category: 'Immersive Guide', author: 'Sarah Chen', saves: 4521 },
+    { id: 'culture-2', title: 'Tokyo After Dark', subtitle: 'Discovering hidden izakayas', readTime: '6 min read', image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80', category: 'Local Secrets', author: 'James Tanaka', saves: 3892 }
+  ];
+
+  const trendingDestinations = [
+    { id: 'trend-1', rank: 1, destination: 'Portugal', country: 'Europe', change: '+12', image: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=300&q=80', searches: '45K' },
+    { id: 'trend-2', rank: 2, destination: 'Greece', country: 'Europe', change: '+8', image: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=300&q=80', searches: '38K' },
+    { id: 'trend-3', rank: 3, destination: 'Mexico', country: 'North America', change: '+15', image: 'https://images.unsplash.com/photo-1518638150340-f706e86654de?w=300&q=80', searches: '32K' },
+    { id: 'trend-4', rank: 4, destination: 'Croatia', country: 'Europe', change: '+6', image: 'https://images.unsplash.com/photo-1555990538-1e6c89d63468?w=300&q=80', searches: '28K' },
+    { id: 'trend-5', rank: 5, destination: 'New Zealand', country: 'Oceania', change: '+4', image: 'https://images.unsplash.com/photo-1507699622108-4be3abd695ad?w=300&q=80', searches: '24K' }
+  ];
+
+  const dreamTrips = [
+    { id: 'dream-1', destination: 'Santorini', country: 'Greece', tagline: 'Sunset Paradise', image: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=500&q=80', startingPrice: 1499, highlight: 'Iconic Views' },
+    { id: 'dream-2', destination: 'Swiss Alps', country: 'Switzerland', tagline: 'Mountain Majesty', image: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=500&q=80', startingPrice: 2199, highlight: 'Adventure' },
+    { id: 'dream-3', destination: 'Amalfi Coast', country: 'Italy', tagline: 'Coastal Dreams', image: 'https://images.unsplash.com/photo-1534008897995-27a23e859048?w=500&q=80', startingPrice: 1799, highlight: 'Romance' }
+  ];
+
+  const handleDestinationClick = (destination) => {
+    if (onSelectDestination) onSelectDestination(destination);
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', paddingBottom: '120px', position: 'relative' }}>
+      <DebugLabel name="EXPLORE-SCREEN" />
+
+      {/* Header */}
+      <div style={{
+        padding: '60px 24px 20px',
+        opacity: isLoaded ? 1 : 0,
+        transform: isLoaded ? 'translateY(0)' : 'translateY(-20px)',
+        transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+        position: 'relative'
+      }}>
+        <DebugLabel name="EXPLORE-HEADER" />
+        <h1 style={{ fontSize: '32px', fontWeight: '700', letterSpacing: '-0.5px', marginBottom: '6px' }}>
+          <span style={{ background: 'linear-gradient(135deg, #d4af37 0%, #f4d03f 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Explore</span>
+        </h1>
+        <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.5)', fontWeight: '400' }}>Discover your next adventure</p>
+      </div>
+
+      {/* Search Bar */}
+      <div style={{ padding: '0 24px', marginBottom: '20px', opacity: isLoaded ? 1 : 0, transform: isLoaded ? 'translateY(0)' : 'translateY(20px)', transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.05s', position: 'relative' }}>
+        <DebugLabel name="SEARCH-BAR" />
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '12px',
+          background: searchFocused ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.05)',
+          border: searchFocused ? '1px solid rgba(212, 175, 55, 0.3)' : '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '16px', padding: '14px 18px', transition: 'all 0.2s ease'
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={searchFocused ? '#d4af37' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
+            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+          </svg>
+          <input type="text" placeholder="Where to next?" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)}
+            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: '16px', fontWeight: '400' }}
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Filter Tabs */}
+      <div style={{ padding: '0 24px', marginBottom: '24px', opacity: isLoaded ? 1 : 0, transform: isLoaded ? 'translateY(0)' : 'translateY(20px)', transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.1s', position: 'relative' }}>
+        <DebugLabel name="FILTER-TABS" />
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {filters.map(filter => (
+            <button key={filter.id} onClick={() => setActiveFilter(filter.id)} style={{
+              display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px',
+              background: activeFilter === filter.id ? 'linear-gradient(135deg, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0.1) 100%)' : 'rgba(255,255,255,0.05)',
+              border: activeFilter === filter.id ? '1px solid rgba(212, 175, 55, 0.3)' : '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s ease', whiteSpace: 'nowrap', flexShrink: 0
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill={activeFilter === filter.id ? '#d4af37' : 'none'} stroke={activeFilter === filter.id ? '#d4af37' : 'rgba(255,255,255,0.5)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{filter.icon}</svg>
+              <span style={{ fontSize: '14px', fontWeight: '500', color: activeFilter === filter.id ? '#d4af37' : 'rgba(255,255,255,0.7)' }}>{filter.label}</span>
+              {filter.id === 'saved' && savedDestinations.length > 0 && (
+                <span style={{ background: '#d4af37', color: '#0a0a0f', fontSize: '11px', fontWeight: '600', padding: '2px 6px', borderRadius: '10px', minWidth: '18px', textAlign: 'center' }}>{savedDestinations.length}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* For You Tab Content */}
+      {activeFilter === 'foryou' && (
+        <>
+          {/* Hero Card */}
+          <div style={{ padding: '0 24px', marginBottom: '28px', opacity: isLoaded ? 1 : 0, transform: isLoaded ? 'translateY(0)' : 'translateY(20px)', transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.15s', position: 'relative' }}>
+            <DebugLabel name="HERO-SECTION" />
+            <ExploreHeroCard destination={heroDestinations[0]} onSelect={handleDestinationClick} onSave={onToggleSave} isSaved={isDestinationSaved(heroDestinations[0].id)} />
+          </div>
+
+          {/* Because You Loved Section */}
+          <div style={{ marginBottom: '28px', opacity: isLoaded ? 1 : 0, transform: isLoaded ? 'translateY(0)' : 'translateY(20px)', transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.2s', position: 'relative' }}>
+            <DebugLabel name="BECAUSE-YOU-LOVED" />
+            <div style={{ padding: '0 24px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: '600', letterSpacing: '-0.3px' }}>Because you loved</h2>
+                <span style={{ background: 'linear-gradient(135deg, #d4af37 0%, #f4d03f 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontSize: '20px', fontWeight: '700' }}>{becauseYouLoved.basedOn}</span>
+              </div>
+              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>AI-curated destinations matching your travel style</p>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', padding: '0 24px', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {becauseYouLoved.destinations.map(dest => (
+                <ExploreDestinationCard key={dest.id} destination={dest} onSelect={handleDestinationClick} onSave={onToggleSave} isSaved={isDestinationSaved(dest.id)} showMatch />
+              ))}
+            </div>
+          </div>
+
+          {/* Flash Deals Section */}
+          <div style={{ marginBottom: '28px', opacity: isLoaded ? 1 : 0, transform: isLoaded ? 'translateY(0)' : 'translateY(20px)', transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.25s', position: 'relative' }}>
+            <DebugLabel name="FLASH-DEALS" />
+            <div style={{ padding: '0 24px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <h2 style={{ fontSize: '20px', fontWeight: '600', letterSpacing: '-0.3px' }}>Flash Deals</h2>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(239, 68, 68, 0.15)', padding: '4px 10px', borderRadius: '8px' }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444', animation: 'pulse 1.5s infinite' }} />
+                    <span style={{ fontSize: '12px', fontWeight: '600', color: '#ef4444' }}>LIVE</span>
+                  </div>
+                </div>
+                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>Limited time offers, book now</p>
+              </div>
+              <button style={{ background: 'transparent', border: 'none', color: '#d4af37', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>See all</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '0 24px' }}>
+              {flashDeals.map(deal => (<ExploreDealCard key={deal.id} deal={deal} />))}
+            </div>
+          </div>
+
+          {/* Cultural Spotlight */}
+          <div style={{ marginBottom: '28px', opacity: isLoaded ? 1 : 0, transform: isLoaded ? 'translateY(0)' : 'translateY(20px)', transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.3s', position: 'relative' }}>
+            <DebugLabel name="CULTURAL-SPOTLIGHT" />
+            <div style={{ padding: '0 24px', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: '600', letterSpacing: '-0.3px' }}>Cultural Spotlight</h2>
+              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>Immerse yourself in destinations</p>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', padding: '0 24px', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {culturalSpotlights.map(spotlight => (<ExploreCulturalCard key={spotlight.id} spotlight={spotlight} />))}
+            </div>
+          </div>
+
+          {/* Dream Trips */}
+          <div style={{ marginBottom: '28px', opacity: isLoaded ? 1 : 0, transform: isLoaded ? 'translateY(0)' : 'translateY(20px)', transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.35s', position: 'relative' }}>
+            <DebugLabel name="DREAM-TRIPS" />
+            <div style={{ padding: '0 24px', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: '600', letterSpacing: '-0.3px' }}>Dream Trips</h2>
+              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>Bucket-list worthy destinations</p>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', padding: '0 24px', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {dreamTrips.map(trip => (<ExploreDreamCard key={trip.id} trip={trip} onSelect={handleDestinationClick} onSave={onToggleSave} isSaved={isDestinationSaved(trip.id)} />))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Deals Tab */}
+      {activeFilter === 'deals' && (
+        <div style={{ padding: '0 24px', opacity: isLoaded ? 1 : 0, transform: isLoaded ? 'translateY(0)' : 'translateY(20px)', transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.15s' }}>
+          <DebugLabel name="DEALS-TAB" />
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: '600' }}>All Deals</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(239, 68, 68, 0.15)', padding: '4px 10px', borderRadius: '8px' }}>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444', animation: 'pulse 1.5s infinite' }} />
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#ef4444' }}>LIVE</span>
+              </div>
+            </div>
+            <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)' }}>Exclusive offers curated for you</p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {flashDeals.map(deal => (<ExploreDealCard key={deal.id} deal={deal} expanded />))}
+          </div>
+        </div>
+      )}
+
+      {/* Trending Tab */}
+      {activeFilter === 'trending' && (
+        <div style={{ padding: '0 24px', opacity: isLoaded ? 1 : 0, transform: isLoaded ? 'translateY(0)' : 'translateY(20px)', transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.15s' }}>
+          <DebugLabel name="TRENDING-TAB" />
+          <div style={{ marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '4px' }}>Trending Now</h2>
+            <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)' }}>Most searched destinations this week</p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {trendingDestinations.map(dest => (<ExploreTrendingCard key={dest.id} destination={dest} onSelect={handleDestinationClick} onSave={onToggleSave} isSaved={isDestinationSaved(dest.id)} />))}
+          </div>
+        </div>
+      )}
+
+      {/* Saved Tab */}
+      {activeFilter === 'saved' && (
+        <div style={{ padding: '0 24px', opacity: isLoaded ? 1 : 0, transform: isLoaded ? 'translateY(0)' : 'translateY(20px)', transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.15s' }}>
+          <DebugLabel name="SAVED-TAB" />
+          <div style={{ marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '4px' }}>Saved Destinations</h2>
+            <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)' }}>Your travel wishlist</p>
+          </div>
+          {savedDestinations.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(212, 175, 55, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d4af37" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>No saved destinations yet</h3>
+              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', maxWidth: '240px', margin: '0 auto' }}>Tap the bookmark icon on any destination to save it here</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {savedDestinations.map(dest => (<ExploreSavedCard key={dest.id} destination={dest} onSelect={handleDestinationClick} onRemove={() => onToggleSave(dest)} />))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <BottomNav activeTab="explore" onNavigate={onNavigate} />
+    </div>
+  );
+};
+
+// ==================== EXPLORE CARD COMPONENTS ====================
+const ExploreHeroCard = ({ destination, onSelect, onSave, isSaved }) => (
+  <div onClick={() => onSelect(destination)} style={{ borderRadius: '24px', overflow: 'hidden', position: 'relative', height: '340px', cursor: 'pointer', transition: 'transform 0.3s ease' }}>
+    <DebugLabel name="HERO-CARD" />
+    <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${destination.image})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.2) 100%)' }} />
+    <div style={{ position: 'absolute', inset: 0, padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ background: 'linear-gradient(135deg, #d4af37 0%, #f4d03f 100%)', color: '#0a0a0f', padding: '8px 14px', borderRadius: '12px', fontSize: '12px', fontWeight: '700', letterSpacing: '0.5px', textTransform: 'uppercase' }}>{destination.season}</div>
+        <button onClick={(e) => { e.stopPropagation(); onSave(destination); }} style={{ background: isSaved ? 'rgba(212, 175, 55, 0.2)' : 'rgba(0,0,0,0.4)', backdropFilter: 'blur(10px)', border: isSaved ? '1px solid rgba(212, 175, 55, 0.4)' : '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s ease' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill={isSaved ? '#d4af37' : 'none'} stroke={isSaved ? '#d4af37' : '#fff'} strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        </button>
+      </div>
+      <div>
+        <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', fontWeight: '500', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>{destination.tagline}</p>
+        <h2 style={{ fontSize: '42px', fontWeight: '700', letterSpacing: '-1.5px', marginBottom: '8px', lineHeight: 1 }}>{destination.destination}</h2>
+        <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.7)', marginBottom: '20px', lineHeight: 1.5, maxWidth: '280px' }}>{destination.description}</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div><p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '2px' }}>FROM</p><p style={{ fontSize: '24px', fontWeight: '700', color: '#d4af37' }}>${destination.price}</p></div>
+            <div style={{ height: '36px', width: '1px', background: 'rgba(255,255,255,0.2)' }} />
+            <div><p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '2px' }}>DURATION</p><p style={{ fontSize: '16px', fontWeight: '600' }}>{destination.duration}</p></div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#d4af37" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span style={{ fontSize: '14px', fontWeight: '600' }}>{destination.rating}</span>
+            <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>({destination.reviews.toLocaleString()})</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const ExploreDestinationCard = ({ destination, onSelect, onSave, isSaved, showMatch }) => (
+  <div onClick={() => onSelect(destination)} style={{ width: '160px', flexShrink: 0, borderRadius: '16px', overflow: 'hidden', position: 'relative', cursor: 'pointer', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+    <DebugLabel name="DESTINATION-CARD" />
+    <div style={{ height: '120px', backgroundImage: `url(${destination.image})`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
+      {showMatch && <div style={{ position: 'absolute', top: '8px', left: '8px', background: 'rgba(34, 197, 94, 0.9)', padding: '4px 8px', borderRadius: '8px', fontSize: '11px', fontWeight: '600', color: '#fff' }}>{destination.match}% match</div>}
+      <button onClick={(e) => { e.stopPropagation(); onSave(destination); }} style={{ position: 'absolute', top: '8px', right: '8px', background: isSaved ? 'rgba(212, 175, 55, 0.9)' : 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '8px', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill={isSaved ? '#fff' : 'none'} stroke="#fff" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+      </button>
+    </div>
+    <div style={{ padding: '12px' }}>
+      <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '2px' }}>{destination.destination}</h3>
+      <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '8px' }}>{destination.country}</p>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+        <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>from</span>
+        <span style={{ fontSize: '16px', fontWeight: '700', color: '#d4af37' }}>${destination.price}</span>
+      </div>
+    </div>
+  </div>
+);
+
+const ExploreDealCard = ({ deal, expanded }) => {
+  const [timeLeft, setTimeLeft] = useState(deal.endsIn);
+  useEffect(() => { const timer = setInterval(() => { setTimeLeft(prev => prev > 0 ? prev - 1 : 0); }, 1000); return () => clearInterval(timer); }, []);
+  const formatTime = (seconds) => { const hours = Math.floor(seconds / 3600); const mins = Math.floor((seconds % 3600) / 60); const secs = seconds % 60; return `${hours}h ${mins}m ${secs}s`; };
+  const typeConfig = { flight: { icon: <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>, color: '#6366f1' }, hotel: { icon: <><path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16"/><path d="M3 21h18"/><path d="M9 7h1"/><path d="M14 7h1"/></>, color: '#22c55e' }, package: { icon: <><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></>, color: '#d4af37' } };
+  const config = typeConfig[deal.type];
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative', overflow: 'hidden' }}>
+      <DebugLabel name="DEAL-CARD" />
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: `linear-gradient(90deg, ${config.color} 0%, transparent 100%)`, opacity: 0.6 }} />
+      <div style={{ width: '64px', height: '64px', borderRadius: '12px', backgroundImage: `url(${deal.image})`, backgroundSize: 'cover', backgroundPosition: 'center', flexShrink: 0, position: 'relative' }}>
+        <div style={{ position: 'absolute', bottom: '-4px', right: '-4px', width: '24px', height: '24px', borderRadius: '8px', background: config.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1">{config.icon}</svg>
+        </div>
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+          <h3 style={{ fontSize: '15px', fontWeight: '600' }}>{deal.type === 'flight' ? deal.route : deal.name}</h3>
+          <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', fontSize: '11px', fontWeight: '700', padding: '3px 6px', borderRadius: '6px' }}>-{deal.discount}%</span>
+        </div>
+        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '6px' }}>{deal.type === 'flight' ? deal.airline : deal.type === 'hotel' ? deal.location : deal.includes}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', textDecoration: 'line-through' }}>${deal.originalPrice}</span>
+          <span style={{ fontSize: '18px', fontWeight: '700', color: '#d4af37' }}>${deal.dealPrice}</span>
+          {deal.perNight && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>/night</span>}
+        </div>
+      </div>
+      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginBottom: '4px', textTransform: 'uppercase' }}>Ends in</p>
+        <p style={{ fontSize: '13px', fontWeight: '600', color: timeLeft < 3600 ? '#ef4444' : '#fff', fontFamily: 'monospace' }}>{formatTime(timeLeft)}</p>
+      </div>
+    </div>
+  );
+};
+
+const ExploreCulturalCard = ({ spotlight }) => (
+  <div style={{ width: '280px', flexShrink: 0, borderRadius: '20px', overflow: 'hidden', position: 'relative', height: '200px', cursor: 'pointer' }}>
+    <DebugLabel name="CULTURAL-CARD" />
+    <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${spotlight.image})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.3) 50%, transparent 100%)' }} />
+    <div style={{ position: 'absolute', inset: 0, padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', padding: '6px 10px', borderRadius: '8px', alignSelf: 'flex-start', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{spotlight.category}</div>
+      <div>
+        <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '4px' }}>{spotlight.title}</h3>
+        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', marginBottom: '10px' }}>{spotlight.subtitle}</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{spotlight.readTime}</span>
+            <span style={{ color: 'rgba(255,255,255,0.3)' }}>•</span>
+            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>by {spotlight.author}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{spotlight.saves.toLocaleString()}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const ExploreDreamCard = ({ trip, onSelect, onSave, isSaved }) => (
+  <div onClick={() => onSelect(trip)} style={{ width: '200px', flexShrink: 0, borderRadius: '20px', overflow: 'hidden', position: 'relative', height: '260px', cursor: 'pointer' }}>
+    <DebugLabel name="DREAM-CARD" />
+    <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${trip.image})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)' }} />
+    <div style={{ position: 'absolute', inset: 0, padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ background: 'rgba(212, 175, 55, 0.9)', color: '#0a0a0f', padding: '5px 10px', borderRadius: '8px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{trip.highlight}</div>
+        <button onClick={(e) => { e.stopPropagation(); onSave(trip); }} style={{ background: isSaved ? 'rgba(212, 175, 55, 0.9)' : 'rgba(0,0,0,0.4)', border: 'none', borderRadius: '10px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill={isSaved ? '#fff' : 'none'} stroke="#fff" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        </button>
+      </div>
+      <div>
+        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginBottom: '2px' }}>{trip.country}</p>
+        <h3 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px', letterSpacing: '-0.5px' }}>{trip.destination}</h3>
+        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', marginBottom: '12px' }}>{trip.tagline}</p>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+          <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>from</span>
+          <span style={{ fontSize: '20px', fontWeight: '700', color: '#d4af37' }}>${trip.startingPrice}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const ExploreTrendingCard = ({ destination, onSelect, onSave, isSaved }) => (
+  <div onClick={() => onSelect(destination)} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', cursor: 'pointer', position: 'relative' }}>
+    <DebugLabel name="TRENDING-CARD" />
+    <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: destination.rank <= 3 ? 'linear-gradient(135deg, #d4af37 0%, #f4d03f 100%)' : 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '700', color: destination.rank <= 3 ? '#0a0a0f' : '#fff', flexShrink: 0 }}>{destination.rank}</div>
+    <div style={{ width: '56px', height: '56px', borderRadius: '12px', backgroundImage: `url(${destination.image})`, backgroundSize: 'cover', backgroundPosition: 'center', flexShrink: 0 }} />
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '2px' }}>{destination.destination}</h3>
+      <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>{destination.country}</p>
+    </div>
+    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+        <span style={{ fontSize: '13px', fontWeight: '600', color: '#22c55e' }}>{destination.change}%</span>
+      </div>
+      <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>{destination.searches} searches</p>
+    </div>
+    <button onClick={(e) => { e.stopPropagation(); onSave(destination); }} style={{ background: isSaved ? 'rgba(212, 175, 55, 0.2)' : 'transparent', border: 'none', borderRadius: '10px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill={isSaved ? '#d4af37' : 'none'} stroke={isSaved ? '#d4af37' : 'rgba(255,255,255,0.4)'} strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+    </button>
+  </div>
+);
+
+const ExploreSavedCard = ({ destination, onSelect, onRemove }) => (
+  <div onClick={() => onSelect(destination)} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', cursor: 'pointer', position: 'relative' }}>
+    <DebugLabel name="SAVED-CARD" />
+    <div style={{ width: '64px', height: '64px', borderRadius: '14px', backgroundImage: `url(${destination.image})`, backgroundSize: 'cover', backgroundPosition: 'center', flexShrink: 0 }} />
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '2px' }}>{destination.destination}</h3>
+      <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>{destination.country || destination.tagline}</p>
+      {(destination.price || destination.startingPrice) && (
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+          <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>from</span>
+          <span style={{ fontSize: '15px', fontWeight: '600', color: '#d4af37' }}>${destination.price || destination.startingPrice}</span>
+        </div>
+      )}
+    </div>
+    <button onClick={(e) => { e.stopPropagation(); onRemove(); }} style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: '10px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+);
+
+// ==================== DESTINATION DETAIL MODAL ====================
+const DestinationDetailModal = ({ destination, onClose, onToggleSave, isSaved }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  useEffect(() => { setTimeout(() => setIsVisible(true), 50); }, []);
+  const handleClose = () => { setIsVisible(false); setTimeout(onClose, 300); };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+      <DebugLabel name="DESTINATION-MODAL" />
+      <div onClick={handleClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', opacity: isVisible ? 1 : 0, transition: 'opacity 0.3s ease' }} />
+      <div style={{ position: 'relative', width: '100%', maxWidth: '500px', maxHeight: '90vh', background: 'linear-gradient(180deg, #1a1a2e 0%, #0a0a0f 100%)', borderRadius: '24px 24px 0 0', overflow: 'hidden', transform: isVisible ? 'translateY(0)' : 'translateY(100%)', transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+        <div style={{ height: '240px', backgroundImage: `url(${destination.image})`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,10,15,1) 0%, transparent 50%)' }} />
+          <button onClick={handleClose} style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          <button onClick={() => onToggleSave(destination)} style={{ position: 'absolute', top: '16px', left: '16px', background: isSaved ? 'rgba(212, 175, 55, 0.9)' : 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)', border: 'none', borderRadius: '12px', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#fff' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill={isSaved ? '#fff' : 'none'} stroke="#fff" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <span style={{ fontSize: '14px', fontWeight: '600' }}>{isSaved ? 'Saved' : 'Save'}</span>
+          </button>
+        </div>
+        <div style={{ padding: '24px', marginTop: '-40px', position: 'relative' }}>
+          {destination.season && <div style={{ display: 'inline-block', background: 'linear-gradient(135deg, #d4af37 0%, #f4d03f 100%)', color: '#0a0a0f', padding: '6px 12px', borderRadius: '10px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>{destination.season}</div>}
+          <h2 style={{ fontSize: '32px', fontWeight: '700', letterSpacing: '-1px', marginBottom: '8px' }}>{destination.destination}</h2>
+          {destination.tagline && <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.6)', marginBottom: '16px' }}>{destination.tagline}</p>}
+          {destination.description && <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, marginBottom: '24px' }}>{destination.description}</p>}
+          <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+            {(destination.price || destination.startingPrice) && (
+              <div style={{ flex: 1, background: 'rgba(255,255,255,0.05)', borderRadius: '16px', padding: '16px', textAlign: 'center' }}>
+                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginBottom: '4px' }}>FROM</p>
+                <p style={{ fontSize: '24px', fontWeight: '700', color: '#d4af37' }}>${destination.price || destination.startingPrice}</p>
+              </div>
+            )}
+            {destination.duration && (
+              <div style={{ flex: 1, background: 'rgba(255,255,255,0.05)', borderRadius: '16px', padding: '16px', textAlign: 'center' }}>
+                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginBottom: '4px' }}>DURATION</p>
+                <p style={{ fontSize: '20px', fontWeight: '600' }}>{destination.duration}</p>
+              </div>
+            )}
+            {destination.rating && (
+              <div style={{ flex: 1, background: 'rgba(255,255,255,0.05)', borderRadius: '16px', padding: '16px', textAlign: 'center' }}>
+                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginBottom: '4px' }}>RATING</p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#d4af37" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  <span style={{ fontSize: '20px', fontWeight: '600' }}>{destination.rating}</span>
+                </div>
+              </div>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button style={{ flex: 1, padding: '16px', background: 'linear-gradient(135deg, #d4af37 0%, #f4d03f 100%)', border: 'none', borderRadius: '14px', color: '#0a0a0f', fontSize: '16px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Plan This Trip
+            </button>
+            <button style={{ padding: '16px 20px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
